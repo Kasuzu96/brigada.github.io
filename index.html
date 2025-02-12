@@ -7,33 +7,38 @@
   <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
   <link rel="stylesheet" href="style.css">
   <style>
-    /* Estilos para el UI overlay */
+    /* Estilos para el UI overlay: se muestra sobre la escena VR */
     #ui-overlay {
       position: absolute;
       top: 0;
       left: 0;
       width: 100%;
-      z-index: 10; /* Debe estar sobre la escena */
+      z-index: 10; /* Mayor que la escena para que se vea encima */
       pointer-events: auto;
     }
-    /* Ocultar el botón de entrar en VR que A-Frame muestra por defecto */
+    /* Opcional: ajusta el estilo del botón VR si lo deseas */
     .a-enter-vr-button {
-      display: none !important;
+      /* Puedes personalizarlo o dejarlo por defecto */
+      bottom: 20px;
+      right: 20px;
     }
   </style>
 </head>
 <body>
-  <!-- Escena VR sin botón de VR -->
-  <a-scene vr-mode-ui="enabled: false">
-    <!-- Fondo (sky) para evitar pantalla negra -->
+  <!-- Escena VR -->
+  <a-scene>
+    <!-- Fondo para evitar pantalla negra -->
     <a-sky color="#1C2A39"></a-sky>
-    <!-- Cámara con cursor para interacción en VR -->
+    <!-- Cámara con cursor para interacción -->
     <a-camera position="0 1.6 0">
       <a-cursor></a-cursor>
     </a-camera>
+    <!-- Agregar soporte para controles de mano (para MetaQuest 3) -->
+    <a-entity hand-controls="hand: left"></a-entity>
+    <a-entity hand-controls="hand: right"></a-entity>
   </a-scene>
 
-  <!-- UI Overlay: Aquí se mostrará la interfaz HTML (menú, etc.) -->
+  <!-- UI Overlay: Contenido HTML que se mostrará sobre la escena VR -->
   <div id="ui-overlay">
     <!-- Registro del participante -->
     <div class="container" id="registration">
@@ -71,7 +76,7 @@
     </div>
   </div>
 
-  <!-- Audios (se mantienen en el DOM para poder controlarlos) -->
+  <!-- Audios (se mantienen en el DOM para su control) -->
   <audio id="bgMusic" src="audio/bgMusic.mp3" loop></audio>
   <audio id="correctSound" src="audio/correct.mp3"></audio>
   <audio id="wrongSound" src="audio/wrong.mp3"></audio>
@@ -80,6 +85,5 @@
   <script src="script.js"></script>
 </body>
 </html>
-
 
 
