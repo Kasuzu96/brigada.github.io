@@ -3,19 +3,24 @@
 <head>
   <meta charset="UTF-8">
   <title>Brigada Protectora: Misión Especial</title>
-  <!-- Incluir A-Frame para realidad virtual -->
+  <!-- Incluir A-Frame para VR -->
   <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <a-scene embedded>
-    <!-- Música de fondo en bucle (se deja fuera del stop de audio) -->
-    <audio id="bgMusic" src="audio/bgMusic.mp3" loop></audio>
-    <!-- Efectos de sonido -->
-    <audio id="correctSound" src="audio/correct.mp3"></audio>
-    <audio id="wrongSound" src="audio/wrong.mp3"></audio>
-    <audio id="clickSound" src="audio/click.mp3"></audio>
+  <!-- La escena VR -->
+  <a-scene>
+    <!-- Fondo (sky) para evitar pantalla negra -->
+    <a-sky color="#1C2A39"></a-sky>
+    <!-- Cámara con cursor para interacción en VR -->
+    <a-camera position="0 1.6 0">
+      <a-cursor></a-cursor>
+    </a-camera>
+    <!-- Elementos 3D opcionales de la escena, si los deseas -->
+  </a-scene>
 
+  <!-- UI Overlay (fuera de la escena para verse como DOM overlay) -->
+  <div id="ui-overlay">
     <!-- Registro del participante -->
     <div class="container" id="registration">
       <h1>Brigada Protectora: Misión Especial</h1>
@@ -39,19 +44,28 @@
     <!-- Área de juego / preguntas -->
     <div class="container hidden" id="game">
       <div id="content"></div>
-      <div id="feedback"></div>
+      <!-- El feedback se mostrará sólo en las alertas laterales -->
       <button id="nextBtn" class="hidden">Siguiente</button>
     </div>
 
     <!-- Sección final -->
     <div class="container hidden" id="downloadSection">
+      <img src="images/final_screen.webp" alt="Pantalla Final" class="final-img">
       <h2>Misión cumplida</h2>
       <p>Felicidades, Agente <span id="agentName"></span>.</p>
       <p class="final-score">Score Final: 0 pts</p>
       <p>¡Gracias por jugar!</p>
     </div>
-  </a-scene>
+  </div>
+
+  <!-- Audios (se mantienen en el DOM para poder controlarlos) -->
+  <audio id="bgMusic" src="audio/bgMusic.mp3" loop></audio>
+  <audio id="correctSound" src="audio/correct.mp3"></audio>
+  <audio id="wrongSound" src="audio/wrong.mp3"></audio>
+  <audio id="clickSound" src="audio/click.mp3"></audio>
+
   <script src="script.js"></script>
 </body>
 </html>
+
 
