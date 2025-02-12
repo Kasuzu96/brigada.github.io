@@ -13,7 +13,7 @@ document.addEventListener('DOMContentLoaded', function() {
   const nextBtn = document.getElementById('nextBtn');
 
   const contentDiv = document.getElementById('content');
-  const feedbackDiv = document.getElementById('feedback'); // Ya no se usará para mostrar feedback
+  // feedbackDiv ya no se utiliza para mostrar mensajes duplicados
   const introTextDiv = document.getElementById('introText');
   const agentNameSpan = document.getElementById('agentName');
 
@@ -28,15 +28,21 @@ document.addEventListener('DOMContentLoaded', function() {
   let currentQuestionIndex = 0;
   let currentLevel = 1;
   let isShowingNarrative = false;
-
-  // Variables para la puntuación: cada respuesta correcta suma según el nivel
   let totalScore = 0;
-  // Ya no mostramos puntaje por nivel en la pantalla final,
-  // por lo que dejamos de actualizar un objeto por nivel.
-  // Si lo necesitas internamente, lo puedes seguir usando, pero la pantalla final mostrará solo el total.
-  
-  // Variable para llevar cuenta de los intentos en la pregunta actual.
+  // Contador de intentos para la pregunta actual (para reducción de puntaje)
   let attemptsForCurrentQuestion = 0;
+
+  // Arreglo para almacenar audios activos (excepto bgMusic)
+  let activeAudios = [];
+
+  // Función que detiene y limpia todos los audios activos
+  function stopAllAudio() {
+    activeAudios.forEach(audio => {
+      audio.pause();
+      audio.currentTime = 0;
+    });
+    activeAudios = [];
+  }
 
   // Texto de introducción general
   const generalIntro = `
@@ -46,33 +52,33 @@ Para completar la misión, debes responder correctamente cada pregunta. Si lo lo
 
 ¡Ponte tu lupa 🔍, prepárate y que comience la aventura! 🚀`;
 
-  // Narrativas “Antes de empezar” por nivel, con texto, audio e imagen
+  // Narrativas “Antes de empezar” por nivel (con texto, audio e imagen)
   const levelNarratives = {
     1: {
       text: `🔹 Nivel 1: ¿Qué son las violencias basadas en género?
 📖 Antes de empezar...
-Las violencias basadas en género ocurren cuando alguien trata mal a otra persona solo por ser niño o niña. Esto puede hacer que alguien se sienta triste o piense que no puede hacer ciertas cosas. Todos tenemos los mismos derechos y podemos elegir lo que nos gusta sin miedo.`,
+Las violencias basadas en género ocurren cuando alguien trata mal a otra persona solo por su género. Esto puede hacer que alguien se sienta triste o piense que no puede hacer ciertas cosas. Todos tenemos los mismos derechos.`,
       audio: "audio/level1_narration.mp3",
       image: "images/level1_intro.webp"
     },
     2: {
       text: `🔹 Nivel 2: ¿Cómo saber si algo no está bien?
 📖 Antes de empezar...
-A veces, algo nos hace sentir mal, pero no sabemos si es correcto. Algunas señales son:
-– Que te toquen de una forma que no te gusta.
-– Que te obliguen a hacer algo que no quieres.
-– Que te digan palabras hirientes.
-– Que te traten diferente por tu apariencia.`,
+A veces algo nos hace sentir mal, pero no sabemos si es correcto. Señales: 
+– Te tocan de forma incómoda.
+– Te obligan a hacer algo.
+– Te dicen palabras hirientes.
+– Te tratan diferente por tu apariencia.`,
       audio: "audio/level2_narration.mp3",
       image: "images/level2_intro.webp"
     },
     3: {
-      text: `🔹 Nivel 3: ¿Qué puedes hacer si esto te pasa a ti o a alguien que conoces?
+      text: `🔹 Nivel 3: ¿Qué hacer si te pasa algo similar?
 📖 Antes de empezar...
-Si sientes que alguien te trata mal o ves que alguien más lo sufre, recuerda:
-– Habla con una persona de confianza (papá, mamá, profesor, etc.).
-– No es tu culpa.
-– Anima a quien lo sufra a pedir ayuda.`,
+Si sientes que alguien te trata mal o ves que otro lo sufre:
+– Habla con una persona de confianza.
+– Recuerda que no es tu culpa.
+– Anima a pedir ayuda.`,
       audio: "audio/level3_narration.mp3",
       image: "images/level3_intro.webp"
     }
@@ -87,17 +93,17 @@ Si sientes que alguien te trata mal o ves que alguien más lo sufre, recuerda:
 Mariana quiere jugar fútbol en el recreo, pero unos niños le dicen que el fútbol es "solo para niños" y no la dejan jugar.
 ¿Crees que hay violencia? (Sí / No)`,
       correct: "Sí",
-      feedback: `Decirle a alguien que no puede hacer algo por su género es discriminatorio.`,
+      feedback: `Decir que alguien no puede jugar por su género es discriminatorio.`,
       image: "images/nivel1_situacion1.webp",
       audio: "audio/nivel1_situacion1.mp3"
     },
     {
       level: 1,
       question: `📌 Situación 2:
-Pedro quiere aprender a bailar, pero sus amigos le dicen que "bailar es cosa de niñas" y se burlan de él.
+Pedro quiere aprender a bailar, pero sus amigos le dicen que "bailar es cosa de niñas" y se burlan.
 ¿Crees que hay violencia? (Sí / No)`,
       correct: "Sí",
-      feedback: `Burlarse por tus gustos es una forma de violencia.`,
+      feedback: `Burlarse de los gustos de alguien es una forma de violencia.`,
       image: "images/nivel1_situacion2.webp",
       audio: "audio/nivel1_situacion2.mp3"
     },
@@ -107,7 +113,7 @@ Pedro quiere aprender a bailar, pero sus amigos le dicen que "bailar es cosa de 
 En la escuela se organizan equipos de ciencias y todos pueden participar.
 ¿Crees que hay violencia? (Sí / No)`,
       correct: "No",
-      feedback: `¡Correcto! Es una situación justa para todos.`,
+      feedback: `¡Correcto! Es una situación equitativa para todos.`,
       image: "images/nivel1_situacion3.webp",
       audio: "audio/nivel1_situacion3.mp3"
     },
@@ -138,7 +144,7 @@ Sara no quiere abrazar a un familiar, pero su mamá la obliga.
 David es nuevo en la escuela y todos lo incluyen en sus juegos.
 ¿Crees que hay violencia? (Sí / No)`,
       correct: "No",
-      feedback: `¡Correcto! La inclusión es importante.`,
+      feedback: `¡Correcto! La inclusión es fundamental.`,
       image: "images/nivel2_situacion3.webp",
       audio: "audio/nivel2_situacion3.mp3"
     },
@@ -159,7 +165,7 @@ Lucía ve que su amiga está triste porque la molestan.
 Carlos escucha que un niño advierte a otro que "si cuenta algo, tendrá problemas".
 ¿Crees que debe hablar con un adulto? (Sí / No)`,
       correct: "Sí",
-      feedback: `¡Muy bien! Un adulto puede ayudar.`,
+      feedback: `¡Muy bien! Un adulto de confianza puede ayudar.`,
       image: "images/nivel3_situacion2.webp",
       audio: "audio/nivel3_situacion2.mp3"
     },
@@ -191,7 +197,7 @@ Emilia decide no contar un problema porque piensa que nadie le creerá.
     type();
   }
 
-  // Función para formatear el texto de feedback en varias líneas (separa cada 40 caracteres aprox.)
+  // Función para formatear el texto de feedback en varias líneas (cada 40 caracteres aprox.)
   function formatFeedbackText(text, maxLineLength = 40) {
     let words = text.split(' ');
     let formatted = '';
@@ -223,7 +229,7 @@ Emilia decide no contar un problema porque piensa que nadie le creerá.
   function showFeedbackAlert(message) {
     let feedbackAlertDiv = document.createElement('div');
     feedbackAlertDiv.className = "feedback-alert";
-    // Formateamos el mensaje para que se distribuya en varias líneas
+    // Formateamos el mensaje para distribuirlo en varias líneas
     const formattedMessage = formatFeedbackText(message, 40);
     feedbackAlertDiv.innerHTML = formattedMessage;
     document.body.appendChild(feedbackAlertDiv);
@@ -247,20 +253,21 @@ Emilia decide no contar un problema porque piensa que nadie le creerá.
     player.date = new Date().toLocaleString();
     console.log("Registro del jugador:", player);
 
-    // Ajustar volumen de la música de fondo y reproducirla
+    // Ajustar volumen de la música de fondo y reproducirla (esta se mantiene durante todo el juego)
     bgMusic.currentTime = 0;
     bgMusic.volume = 0.5;
     bgMusic.play();
 
-    // Reproducir audio de la intro junto al texto
+    // Reproducir audio de la intro
+    stopAllAudio();
     let introAudio = new Audio("audio/intro.mp3");
     introAudio.currentTime = 0;
     introAudio.play();
+    activeAudios.push(introAudio);
 
-    // Ocultamos el registro y mostramos la introducción
+    // Ocultar registro y mostrar introducción
     registrationDiv.classList.add('hidden');
     introDiv.classList.remove('hidden');
-    // Mostramos la narrativa general con efecto typewriter
     typeWriterEffect(introTextDiv, generalIntro, 40, function() {
       console.log("Narrativa general completada.");
       introBtn.classList.remove('hidden');
@@ -270,6 +277,7 @@ Emilia decide no contar un problema porque piensa que nadie le creerá.
   // Al hacer clic en "Comenzar Misión" de la introducción
   introBtn.addEventListener('click', function() {
     console.log("Botón 'Comenzar Misión' presionado.");
+    stopAllAudio();
     introDiv.classList.add('hidden');
     startLevelNarrative(currentLevel);
   });
@@ -277,12 +285,10 @@ Emilia decide no contar un problema porque piensa que nadie le creerá.
   // Función para mostrar la narrativa de inicio de nivel (texto + imagen + audio)
   function startLevelNarrative(level) {
     console.log(`Iniciando narrativa del Nivel ${level}.`);
-    // Aseguramos que el contenedor de juego sea visible
+    stopAllAudio();
     gameDiv.classList.remove('hidden');
     isShowingNarrative = true;
     contentDiv.innerHTML = "";
-    feedbackDiv.innerHTML = "";
-    
     // Reiniciamos los intentos para la pregunta actual
     attemptsForCurrentQuestion = 0;
 
@@ -290,6 +296,7 @@ Emilia decide no contar un problema porque piensa que nadie le creerá.
     let narrationAudio = new Audio(levelNarratives[level].audio);
     narrationAudio.currentTime = 0;
     narrationAudio.play();
+    activeAudios.push(narrationAudio);
 
     // Mostrar imagen y luego el texto con efecto typewriter
     contentDiv.innerHTML = `<img src="${levelNarratives[level].image}" alt="Nivel ${level} Imagen" class="level-img"><p></p>`;
@@ -299,6 +306,7 @@ Emilia decide no contar un problema porque piensa que nadie le creerá.
       nextBtn.classList.remove('hidden');
       nextBtn.onclick = function() {
         console.log("Continuar después de la narrativa del nivel.");
+        stopAllAudio();
         nextBtn.classList.add('hidden');
         isShowingNarrative = false;
         showQuestion();
@@ -308,18 +316,19 @@ Emilia decide no contar un problema porque piensa que nadie le creerá.
 
   // Función para mostrar cada pregunta (con audio para la situación)
   function showQuestion() {
-    // Reiniciamos los intentos para la pregunta actual
+    stopAllAudio();
     attemptsForCurrentQuestion = 0;
     if (currentQuestionIndex < questions.length) {
       const q = questions[currentQuestionIndex];
 
-      // Si se pasa a un nuevo nivel, se muestra la transición
+      // Si se pasa a un nuevo nivel, mostrar transición
       if (q.level > currentLevel) {
         contentDiv.innerHTML = `<h2>¡Felicidades! Has completado el Nivel ${currentLevel}. Sigamos adelante. 🚀</h2>`;
         nextBtn.textContent = "Continuar al siguiente nivel";
         nextBtn.classList.remove('hidden');
         nextBtn.onclick = function() {
           console.log("Transición al siguiente nivel.");
+          stopAllAudio();
           nextBtn.classList.add('hidden');
           currentLevel = q.level;
           startLevelNarrative(currentLevel);
@@ -327,18 +336,19 @@ Emilia decide no contar un problema porque piensa que nadie le creerá.
         return;
       }
 
-      // Reproducir el audio narrativo de la situación
+      // Reproducir audio de la situación
       if (q.audio) {
         let questionAudio = new Audio(q.audio);
         questionAudio.currentTime = 0;
         questionAudio.play();
+        activeAudios.push(questionAudio);
       }
 
-      // Mostrar imagen de la pregunta y luego el texto con efecto typewriter
+      // Mostrar imagen y texto de la pregunta
       contentDiv.innerHTML = `<img src="${q.image}" alt="Pregunta" class="question-img"><p></p>`;
       const p = contentDiv.querySelector("p");
       typeWriterEffect(p, q.question, 40, function() {
-        // Al terminar de escribir la pregunta, se muestran los botones de respuesta
+        // Mostrar botones de respuesta
         const btnYes = document.createElement("button");
         btnYes.textContent = "Sí";
         btnYes.onclick = function() {
@@ -353,11 +363,9 @@ Emilia decide no contar un problema porque piensa que nadie le creerá.
         contentDiv.appendChild(btnNo);
       });
     } else {
-      // Fin de todas las preguntas: se muestra la sección final con el score
-      console.log("No quedan más preguntas.");
+      // Fin de preguntas: mostrar pantalla final con puntaje (solo el total en verde)
+      stopAllAudio();
       gameDiv.classList.add('hidden');
-
-      // Contenido final: mostrar sólo el puntaje final en verde
       downloadSection.innerHTML = `<img src="images/final_screen.webp" alt="Pantalla Final" class="final-img">
 <h2>Misión cumplida</h2>
 <p>Felicidades, Agente ${player.name}.</p>
@@ -369,6 +377,7 @@ Emilia decide no contar un problema porque piensa que nadie le creerá.
       let finalAudio = new Audio("audio/final.mp3");
       finalAudio.currentTime = 0;
       finalAudio.play();
+      activeAudios.push(finalAudio);
 
       // Enviar resultado al backend en formato JSON
       sendResultToBackend();
@@ -382,21 +391,18 @@ Emilia decide no contar un problema porque piensa que nadie le creerá.
       console.log("Respuesta correcta.");
       correctSound.currentTime = 0;
       correctSound.play();
-
-      // Definir puntos según el nivel: 5, 10 o 15
+      // Puntos base según el nivel: 5, 10 o 15
       let basePoints = currentLevel === 1 ? 5 : (currentLevel === 2 ? 10 : 15);
-      // Si hubo al menos un fallo en esta pregunta, se otorga un 30% menos
+      // Si hubo fallos (intentos > 0), se otorga solo el 70% de los puntos base
       let pointsAwarded = attemptsForCurrentQuestion > 0 ? Math.round(basePoints * 0.7) : basePoints;
       totalScore += pointsAwarded;
-
-      // Mostrar alerta lateral con la ganancia y el feedback (sólo en la alerta)
       showScoreAlert(pointsAwarded);
       showFeedbackAlert(`✅ ${q.feedback}`);
-
       nextBtn.textContent = "Siguiente";
       nextBtn.classList.remove('hidden');
       nextBtn.onclick = function() {
         console.log("Siguiente pregunta.");
+        stopAllAudio();
         nextBtn.classList.add('hidden');
         currentQuestionIndex++;
         showQuestion();
@@ -405,13 +411,12 @@ Emilia decide no contar un problema porque piensa que nadie le creerá.
       console.log("Respuesta incorrecta.");
       wrongSound.currentTime = 0;
       wrongSound.play();
-      // Incrementamos el contador de intentos para esta pregunta
       attemptsForCurrentQuestion++;
       showFeedbackAlert(`❌ Respuesta incorrecta. Intenta de nuevo.`);
     }
   }
 
-  // Función para enviar (guardar) los resultados en el backend en formato JSON
+  // Función para enviar los resultados al backend en formato JSON
   function sendResultToBackend() {
     const data = {
       nombre: player.name,
@@ -437,3 +442,4 @@ Emilia decide no contar un problema porque piensa que nadie le creerá.
     }
   });
 });
+
