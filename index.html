@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Brigada Protectora: Misión Especial</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- Música de fondo en bucle -->
+  <audio id="bgMusic" src="audio/bgMusic.mp3" loop></audio>
+  <!-- Efectos de sonido -->
+  <audio id="correctSound" src="audio/correct.mp3"></audio>
+  <audio id="wrongSound" src="audio/wrong.mp3"></audio>
+  <audio id="clickSound" src="audio/click.mp3"></audio>
+
+  <!-- Registro del participante -->
+  <div class="container" id="registration">
+    <h1>Brigada Protectora: Misión Especial</h1>
+    <p>Ingresa tus datos para comenzar la misión:</p>
+    <label for="name">Nombre:</label>
+    <input type="text" id="name" required>
+    <br>
+    <label for="age">Edad:</label>
+    <input type="number" id="age" required>
+    <br>
+    <button id="startBtn">Iniciar Misión</button>
+  </div>
+
+  <!-- Pantalla de Introducción (Narrativa general) -->
+  <div class="container hidden" id="intro">
+    <img src="images/intro.webp" alt="Introducción" class="narrative-img">
+    <div id="introText"></div>
+    <button id="introBtn" class="hidden">Comenzar Misión</button>
+  </div>
+
+  <!-- Área de juego / preguntas -->
+  <div class="container hidden" id="game">
+    <div id="content"></div>
+    <div id="feedback"></div>
+    <button id="nextBtn" class="hidden">Siguiente</button>
+  </div>
+
+  <!-- Sección final con opción a descargar el CSV -->
+  <div class="container hidden" id="downloadSection">
+    <h2>Misión cumplida</h2>
+    <p>Felicidades, Agente <span id="agentName"></span>.</p>
+    <button id="downloadBtn">Descargar CSV con tu información</button>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
