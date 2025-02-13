@@ -2,45 +2,52 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Brigada Protectora VR</title>
-  <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
+  <title>Brigada Protectora: Misión Especial</title>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <a-scene>
-    <!-- Cámara con cursor para interacción -->
-    <a-entity camera position="0 1.6 0">
-      <a-cursor color="black"></a-cursor>
-    </a-entity>
+  <!-- Música de fondo en bucle -->
+  <audio id="bgMusic" src="audio/bgMusic.mp3" loop></audio>
+  <!-- Efectos de sonido -->
+  <audio id="correctSound" src="audio/correct.mp3"></audio>
+  <audio id="wrongSound" src="audio/wrong.mp3"></audio>
+  <audio id="clickSound" src="audio/click.mp3"></audio>
 
-    <!-- Fondo ambiental -->
-    <a-sky color="#001a33"></a-sky>
+  <!-- Registro del participante -->
+  <div class="container" id="registration">
+    <h1>Brigada Protectora: Misión Especial</h1>
+    <p>Ingresa tus datos para comenzar la misión:</p>
+    <label for="name">Nombre:</label>
+    <input type="text" id="name" required>
+    <br>
+    <label for="age">Edad:</label>
+    <input type="number" id="age" required>
+    <br>
+    <button id="startBtn">Iniciar Misión</button>
+  </div>
 
-    <!-- Música de fondo -->
-    <audio id="bgMusic" src="audio/bgMusic.mp3" autoplay loop></audio>
-    
-    <!-- Menú Principal -->
-    <a-entity id="menu" position="0 1.5 -2">
-      <a-text value="Brigada Protectora: Misión Especial" align="center" width="2.5" position="0 0.5 0" color="white"></a-text>
-      
-      <!-- Nombre -->
-      <a-text value="Nombre:" align="center" width="1.5" position="-0.5 0.2 0" color="white"></a-text>
-      <a-entity geometry="primitive: plane; height: 0.15; width: 1" material="color: gray" position="0 0.05 0"></a-entity>
-      
-      <!-- Edad -->
-      <a-text value="Edad:" align="center" width="1.5" position="-0.5 -0.2 0" color="white"></a-text>
-      <a-entity geometry="primitive: plane; height: 0.15; width: 1" material="color: gray" position="0 -0.35 0"></a-entity>
-      
-      <!-- Botón de inicio -->
-      <a-entity id="startBtn" geometry="primitive: plane; height: 0.2; width: 1.2" material="color: blue" position="0 -0.7 0"
-                text="value: Iniciar Misión; align: center; color: white; width: 1.5"
-                class="clickable"></a-entity>
-    </a-entity>
-  </a-scene>
-  
-  <script>
-    document.querySelector('#startBtn').addEventListener('click', function() {
-      alert('¡Misión iniciada!');
-    });
-  </script>
+  <!-- Pantalla de Introducción (Narrativa general) -->
+  <div class="container hidden" id="intro">
+    <img src="images/intro.webp" alt="Introducción" class="narrative-img">
+    <div id="introText"></div>
+    <button id="introBtn" class="hidden">Comenzar Misión</button>
+  </div>
+
+  <!-- Área de juego / preguntas -->
+  <div class="container hidden" id="game">
+    <div id="content"></div>
+    <div id="feedback"></div>
+    <button id="nextBtn" class="hidden">Siguiente</button>
+  </div>
+
+  <!-- Sección final con opción a descargar el CSV -->
+  <div class="container hidden" id="downloadSection">
+    <h2>Misión cumplida</h2>
+    <p>Felicidades, Agente <span id="agentName"></span>.</p>
+    <button id="downloadBtn">Descargar CSV con tu información</button>
+  </div>
+
+  <script src="script.js"></script>
 </body>
 </html>
+
