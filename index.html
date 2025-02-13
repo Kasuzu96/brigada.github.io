@@ -2,87 +2,46 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Brigada Protectora: Misión Especial</title>
-  <!-- Incluir A-Frame para VR -->
-  <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
-  <link rel="stylesheet" href="style.css">
-  <style>
-    /* Estilos para el UI overlay: se muestra sobre la escena VR */
-    #ui-overlay {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      z-index: 10; /* Mayor que la escena para que se vea encima */
-      pointer-events: auto;
-    }
-    /* Opcional: ajusta el estilo del botón VR si lo deseas */
-    .a-enter-vr-button {
-      /* Puedes personalizarlo o dejarlo por defecto */
-      bottom: 20px;
-      right: 20px;
-    }
-  </style>
+  <title>Brigada Protectora VR</title>
+  <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
 </head>
 <body>
-  <!-- Escena VR -->
   <a-scene>
-    <!-- Fondo para evitar pantalla negra -->
-    <a-sky color="#1C2A39"></a-sky>
     <!-- Cámara con cursor para interacción -->
-    <a-camera position="0 1.6 0">
-      <a-cursor></a-cursor>
-    </a-camera>
-    <!-- Agregar soporte para controles de mano (para MetaQuest 3) -->
-    <a-entity hand-controls="hand: left"></a-entity>
-    <a-entity hand-controls="hand: right"></a-entity>
+    <a-entity camera position="0 1.6 0">
+      <a-cursor color="black"></a-cursor>
+    </a-entity>
+
+    <!-- Fondo ambiental -->
+    <a-sky color="#001a33"></a-sky>
+
+    <!-- Música de fondo -->
+    <audio id="bgMusic" src="audio/bgMusic.mp3" autoplay loop></audio>
+    
+    <!-- Menú Principal -->
+    <a-entity id="menu" position="0 1.5 -2">
+      <a-text value="Brigada Protectora: Misión Especial" align="center" width="2.5" position="0 0.5 0" color="white"></a-text>
+      
+      <!-- Nombre -->
+      <a-text value="Nombre:" align="center" width="1.5" position="-0.5 0.2 0" color="white"></a-text>
+      <a-entity geometry="primitive: plane; height: 0.15; width: 1" material="color: gray" position="0 0.05 0"></a-entity>
+      
+      <!-- Edad -->
+      <a-text value="Edad:" align="center" width="1.5" position="-0.5 -0.2 0" color="white"></a-text>
+      <a-entity geometry="primitive: plane; height: 0.15; width: 1" material="color: gray" position="0 -0.35 0"></a-entity>
+      
+      <!-- Botón de inicio -->
+      <a-entity id="startBtn" geometry="primitive: plane; height: 0.2; width: 1.2" material="color: blue" position="0 -0.7 0"
+                text="value: Iniciar Misión; align: center; color: white; width: 1.5"
+                class="clickable"></a-entity>
+    </a-entity>
   </a-scene>
-
-  <!-- UI Overlay: Contenido HTML que se mostrará sobre la escena VR -->
-  <div id="ui-overlay">
-    <!-- Registro del participante -->
-    <div class="container" id="registration">
-      <h1>Brigada Protectora: Misión Especial</h1>
-      <p>Ingresa tus datos para comenzar la misión:</p>
-      <label for="name">Nombre:</label>
-      <input type="text" id="name" required>
-      <br>
-      <label for="age">Edad:</label>
-      <input type="number" id="age" required>
-      <br>
-      <button id="startBtn">Iniciar Misión</button>
-    </div>
-
-    <!-- Pantalla de Introducción (Narrativa general) -->
-    <div class="container hidden" id="intro">
-      <img src="images/intro.webp" alt="Introducción" class="narrative-img">
-      <div id="introText"></div>
-      <button id="introBtn" class="hidden">Comenzar Misión</button>
-    </div>
-
-    <!-- Área de juego / preguntas -->
-    <div class="container hidden" id="game">
-      <div id="content"></div>
-      <button id="nextBtn" class="hidden">Siguiente</button>
-    </div>
-
-    <!-- Sección final -->
-    <div class="container hidden" id="downloadSection">
-      <img src="images/final_screen.webp" alt="Pantalla Final" class="final-img">
-      <h2>Misión cumplida</h2>
-      <p>Felicidades, Agente <span id="agentName"></span>.</p>
-      <p class="final-score">Score Final: 0 pts</p>
-      <p>¡Gracias por jugar!</p>
-    </div>
-  </div>
-
-  <!-- Audios (se mantienen en el DOM para su control) -->
-  <audio id="bgMusic" src="audio/bgMusic.mp3" loop></audio>
-  <audio id="correctSound" src="audio/correct.mp3"></audio>
-  <audio id="wrongSound" src="audio/wrong.mp3"></audio>
-  <audio id="clickSound" src="audio/click.mp3"></audio>
-
-  <script src="script.js"></script>
+  
+  <script>
+    document.querySelector('#startBtn').addEventListener('click', function() {
+      alert('¡Misión iniciada!');
+    });
+  </script>
 </body>
 </html>
 
