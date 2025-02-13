@@ -3,57 +3,450 @@
 <head>
   <meta charset="UTF-8">
   <title>Brigada Protectora VR</title>
-  <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
+  <!-- Se utiliza la versión 1.6.0 de A-Frame -->
+  <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
   <style>
+    /* Definición de fuente personalizada */
     @font-face {
       font-family: 'RetroGaming';
       src: url('fonts/retro_gaming.ttf') format('truetype');
     }
+    /* Estilos para ocultar elementos */
+    .hidden {
+      display: none;
+    }
+    /* Contenedor de UI (superpuesto a la escena VR) */
+    #ui-container {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      z-index: 999;
+      pointer-events: none;
+    }
+    .ui-panel {
+      pointer-events: auto;
+      background: rgba(0, 0, 0, 0.7);
+      color: white;
+      padding: 20px;
+      margin: 10px auto;
+      max-width: 400px;
+      border-radius: 10px;
+      font-family: 'RetroGaming', sans-serif;
+    }
+    /* Botones en la interfaz */
+    .ui-panel button, .ui-panel input {
+      font-family: 'RetroGaming', sans-serif;
+      font-size: 1em;
+      margin: 5px;
+      padding: 5px 10px;
+    }
+    /* Alertas laterales para score y feedback */
+    .score-alert, .feedback-alert {
+      position: fixed;
+      right: 20px;
+      padding: 10px;
+      border-radius: 5px;
+      z-index: 1000;
+      font-family: 'RetroGaming', sans-serif;
+    }
+    .score-alert {
+      top: 20px;
+      background: green;
+      color: white;
+    }
+    .feedback-alert {
+      bottom: 20px;
+      background: rgba(0,0,0,0.7);
+      color: white;
+    }
   </style>
 </head>
 <body>
+  <!-- UI superpuesto (fuera de la escena VR) -->
+  <div id="ui-container">
+    <!-- Registro de participante -->
+    <div id="registration" class="ui-panel">
+      <h2>Registro de Participante</h2>
+      <input id="name" type="text" placeholder="Nombre" />
+      <input id="age" type="number" placeholder="Edad" />
+      <button id="startBtn">Iniciar Misión</button>
+    </div>
+    <!-- Introducción general -->
+    <div id="intro" class="ui-panel hidden">
+      <div id="introText"></div>
+      <button id="introBtn" class="hidden">Comenzar Misión</button>
+    </div>
+    <!-- Panel de juego (preguntas y narrativas por nivel) -->
+    <div id="game" class="ui-panel hidden">
+      <div id="content"></div>
+      <button id="nextBtn" class="hidden">Siguiente</button>
+      <div id="feedback"></div>
+    </div>
+    <!-- Pantalla final -->
+    <div id="downloadSection" class="ui-panel hidden"></div>
+  </div>
+  
+  <!-- Escena A-Frame -->
   <a-scene>
-    <!-- Cámara con cursor y raycaster para interacción -->
+    <!-- Pre-carga de activos -->
+    <a-assets>
+      <img id="skyImage" src="images/fondobonito.png">
+      <audio id="bgMusicAsset" src="audio/bgMusic.mp3"></audio>
+      <a-asset-item id="fontMozillavr" src="https://cdn.aframe.io/fonts/mozillavr.fnt"></a-asset-item>
+      <!-- Se pueden agregar más activos: audios de narración, imágenes de preguntas, etc. -->
+    </a-assets>
+    
+    <!-- Cámara con cursor basado en mouse para interacción en escritorio -->
     <a-entity id="cameraRig" position="0 1.6 0">
       <a-entity camera look-controls>
-        <a-entity cursor="rayOrigin: mouse" position="0 0 -1" geometry="primitive: ring; radiusInner: 0.02; radiusOuter: 0.03" material="color: white; shader: flat"></a-entity>
+        <a-entity cursor="rayOrigin: mouse"
+                  position="0 0 -1"
+                  geometry="primitive: ring; radiusInner: 0.02; radiusOuter: 0.03"
+                  material="color: white; shader: flat"></a-entity>
       </a-entity>
     </a-entity>
-
-    <!-- Controles de Meta Quest con láser -->
+    
+    <!-- Controles para VR (Meta Quest u Oculus Touch) -->
     <a-entity oculus-touch-controls="hand: left"></a-entity>
     <a-entity oculus-touch-controls="hand: right"></a-entity>
     <a-entity laser-controls="hand: left" raycaster="objects: .clickable; showLine: true; lineColor: red;"></a-entity>
     <a-entity laser-controls="hand: right" raycaster="objects: .clickable; showLine: true; lineColor: blue;"></a-entity>
     
     <!-- Fondo ambiental -->
-    <a-sky src="images/fondobonito.png" rotation="0 -130 0"></a-sky>
-
-    <!-- Música de fondo -->
-    <audio id="bgMusic" src="audio/bgMusic.mp3" autoplay loop></audio>
+    <a-sky src="#skyImage" rotation="0 -130 0"></a-sky>
     
-    <!-- Menú Principal -->
-    <a-entity id="menu" position="0 1.5 -2">
-      <a-text font="https://cdn.aframe.io/fonts/mozillavr.fnt" value="Brigada Protectora: Misión Especial" align="center" width="2.5" position="0 0.5 0" color="white"></a-text>
-      
-      <!-- Nombre -->
-      <a-text font="https://cdn.aframe.io/fonts/mozillavr.fnt" value="Nombre:" align="center" width="1.5" position="-0.5 0.2 0" color="white"></a-text>
+    <!-- (Opcional) Menú dentro de la escena para VR, inicialmente oculto -->
+    <a-entity id="menu" position="0 1.5 -2" visible="false">
+      <a-text font="#fontMozillavr" value="Brigada Protectora: Misión Especial" align="center" width="2.5" position="0 0.5 0" color="white"></a-text>
+      <a-text font="#fontMozillavr" value="Nombre:" align="center" width="1.5" position="-0.5 0.2 0" color="white"></a-text>
       <a-entity geometry="primitive: plane; height: 0.15; width: 1" material="color: gray" position="0 0.05 0"></a-entity>
-      
-      <!-- Edad -->
-      <a-text font="https://cdn.aframe.io/fonts/mozillavr.fnt" value="Edad:" align="center" width="1.5" position="-0.5 -0.2 0" color="white"></a-text>
+      <a-text font="#fontMozillavr" value="Edad:" align="center" width="1.5" position="-0.5 -0.2 0" color="white"></a-text>
       <a-entity geometry="primitive: plane; height: 0.15; width: 1" material="color: gray" position="0 -0.35 0"></a-entity>
-      
-      <!-- Botón de inicio -->
-      <a-entity id="startBtn" geometry="primitive: plane; height: 0.2; width: 1.2" material="color: blue" position="0 -0.7 0"
-                text="value: Iniciar Misión; align: center; color: white; width: 1.5"
-                class="clickable"></a-entity>
+      <a-entity id="startBtnVR" class="clickable" geometry="primitive: plane; height: 0.2; width: 1.2" material="color: blue" position="0 -0.7 0"
+                text="value: Iniciar Misión; align: center; color: white; width: 1.5"></a-entity>
     </a-entity>
   </a-scene>
   
   <script>
-    document.querySelector('#startBtn').addEventListener('click', function() {
-      alert('¡Misión iniciada!');
+    /***************************************
+     * Lógica de la experiencia VR/2D modular
+     ***************************************/
+    document.addEventListener('DOMContentLoaded', function() {
+      console.log("DOM cargado correctamente.");
+
+      // Referencias a elementos de la UI
+      const registrationDiv = document.getElementById('registration');
+      const introDiv = document.getElementById('intro');
+      const gameDiv = document.getElementById('game');
+      const downloadSection = document.getElementById('downloadSection');
+
+      const startBtn = document.getElementById('startBtn');
+      const startBtnVR = document.getElementById('startBtnVR');
+      const introBtn = document.getElementById('introBtn');
+      const nextBtn = document.getElementById('nextBtn');
+
+      const contentDiv = document.getElementById('content');
+      const feedbackDiv = document.getElementById('feedback');
+      const introTextDiv = document.getElementById('introText');
+
+      // Cargar audios (se utilizan los assets pre-cargados cuando es posible)
+      const bgMusicAsset = document.getElementById('bgMusicAsset');
+      const bgMusic = new Audio(bgMusicAsset.getAttribute('src'));
+      const correctSound = new Audio("audio/correctSound.mp3");
+      const wrongSound = new Audio("audio/wrongSound.mp3");
+      const clickSound = new Audio("audio/clickSound.mp3");
+
+      // Datos del jugador y estado del juego
+      let player = {};
+      let currentQuestionIndex = 0;
+      let currentLevel = 1;
+      let isShowingNarrative = false;
+      let totalScore = 0;
+      let attemptsForCurrentQuestion = 0;
+
+      // Narrativa general y por niveles
+      const generalIntro = `
+¡Hola, valiente explorador/a! 🌟 Hoy has sido elegido/a para una misión muy especial: convertirte en un agente de la Brigada Protectora. Nuestra tarea es reconocer situaciones de violencia y proteger a todos los niños y niñas del mundo.
+Para completar la misión, debes responder correctamente cada pregunta. Si lo logras, ¡te unirás a la Brigada Protectora y serás un verdadero héroe o heroína! 🦸‍♂️🦸‍♀️
+¡Ponte tu lupa 🔍, prepárate y que comience la aventura! 🚀`;
+
+      const levelNarratives = {
+        1: {
+          text: `🔹 Nivel 1: ¿Qué son las violencias basadas en género?
+Antes de empezar...
+Las violencias basadas en género ocurren cuando alguien trata mal a otra persona solo por ser niño o niña. Esto puede hacer que alguien se sienta triste o piense que no puede hacer ciertas cosas. Todos tenemos los mismos derechos.`,
+          audio: "audio/level1_narration.mp3",
+          image: "images/level1_intro.webp"
+        },
+        2: {
+          text: `🔹 Nivel 2: ¿Cómo saber si algo no está bien?
+Antes de empezar...
+A veces, algo nos hace sentir mal, pero no sabemos si es correcto. Algunas señales son:
+– Que te toquen de forma no deseada.
+– Que te obliguen a hacer algo que no quieres.
+– Que se usen palabras hirientes.
+– Que te traten diferente por tu apariencia.`,
+          audio: "audio/level2_narration.mp3",
+          image: "images/level2_intro.webp"
+        },
+        3: {
+          text: `🔹 Nivel 3: ¿Qué hacer si esto te sucede a ti o a alguien que conoces?
+Antes de empezar...
+Si sientes que alguien te trata mal o ves que alguien más lo sufre, recuerda:
+– Hablar con una persona de confianza.
+– Saber que no es tu culpa.
+– Animar a pedir ayuda.`,
+          audio: "audio/level3_narration.mp3",
+          image: "images/level3_intro.webp"
+        }
+      };
+
+      // Preguntas con sus datos (nivel, pregunta, respuesta correcta, feedback, imagen y audio)
+      const questions = [
+        { level: 1, question: `📌 Situación 1:
+Mariana quiere jugar fútbol en el recreo, pero unos niños le dicen que el fútbol es "solo para niños" y no la dejan jugar.
+¿Hay violencia? (Sí / No)`, correct: "Sí", feedback: `Decirle a alguien que no puede hacer algo por su género es discriminatorio.`, image: "images/nivel1_situacion1.webp", audio: "audio/nivel1_situacion1.mp3" },
+        { level: 1, question: `📌 Situación 2:
+Pedro quiere aprender a bailar, pero sus amigos le dicen que "bailar es cosa de niñas" y se burlan de él.
+¿Hay violencia? (Sí / No)`, correct: "Sí", feedback: `Burlarse de los gustos de alguien es violencia.`, image: "images/nivel1_situacion2.webp", audio: "audio/nivel1_situacion2.mp3" },
+        { level: 1, question: `📌 Situación 3:
+En la escuela se organizan equipos de ciencias y todos pueden participar.
+¿Hay violencia? (Sí / No)`, correct: "No", feedback: `¡Correcto! Es una situación justa para todos.`, image: "images/nivel1_situacion3.webp", audio: "audio/nivel1_situacion3.mp3" },
+        { level: 2, question: `📌 Situación 1:
+A Juan le dicen "cuatro ojos" en la escuela por usar gafas, lo que lo hace sentir mal.
+¿Hay violencia? (Sí / No)`, correct: "Sí", feedback: `Burlarse por la apariencia es violencia.`, image: "images/nivel2_situacion1.webp", audio: "audio/nivel2_situacion1.mp3" },
+        { level: 2, question: `📌 Situación 2:
+Sara no quiere abrazar a un familiar, pero su mamá la obliga.
+¿Hay violencia? (Sí / No)`, correct: "Sí", feedback: `Nadie debe obligarte a hacer algo que no deseas.`, image: "images/nivel2_situacion2.webp", audio: "audio/nivel2_situacion2.mp3" },
+        { level: 2, question: `📌 Situación 3:
+David es nuevo en la escuela y todos lo incluyen en sus juegos.
+¿Hay violencia? (Sí / No)`, correct: "No", feedback: `¡Correcto! La inclusión es fundamental.`, image: "images/nivel2_situacion3.webp", audio: "audio/nivel2_situacion3.mp3" },
+        { level: 3, question: `📌 Situación 1:
+Lucía observa que su amiga está triste por ser molestada.
+¿Debería ayudarla? (Sí / No)`, correct: "Sí", feedback: `¡Exacto! Ayudar es un acto de valentía.`, image: "images/nivel3_situacion1.webp", audio: "audio/nivel3_situacion1.mp3" },
+        { level: 3, question: `📌 Situación 2:
+Carlos escucha que a un niño se le advierte que "si cuenta algo, tendrá problemas".
+¿Debería hablar con un adulto? (Sí / No)`, correct: "Sí", feedback: `¡Muy bien! Un adulto puede ayudar.`, image: "images/nivel3_situacion2.webp", audio: "audio/nivel3_situacion2.mp3" },
+        { level: 3, question: `📌 Situación 3:
+Emilia decide no contar un problema pensando que nadie le creerá.
+¿Debería buscar ayuda? (Sí / No)`, correct: "Sí", feedback: `¡Correcto! Siempre hay alguien dispuesto a ayudar.`, image: "images/nivel3_situacion3.webp", audio: "audio/nivel3_situacion3.mp3" }
+      ];
+
+      // Función para efecto typewriter
+      function typeWriterEffect(element, text, speed = 30, callback) {
+        element.innerHTML = "";
+        let i = 0;
+        function type() {
+          if (i < text.length) {
+            element.innerHTML += text.charAt(i);
+            i++;
+            setTimeout(type, speed);
+          } else if (callback) {
+            callback();
+          }
+        }
+        type();
+      }
+
+      // Función para formatear feedback en varias líneas
+      function formatFeedbackText(text, maxLineLength = 40) {
+        let words = text.split(' ');
+        let formatted = '';
+        let line = '';
+        words.forEach(word => {
+          if (line.length + word.length + 1 > maxLineLength) {
+            formatted += line.trim() + '<br>';
+            line = word + ' ';
+          } else {
+            line += word + ' ';
+          }
+        });
+        formatted += line.trim();
+        return formatted;
+      }
+
+      // Función para mostrar alerta lateral de score
+      function showScoreAlert(points) {
+        let alertDiv = document.createElement('div');
+        alertDiv.className = "score-alert";
+        alertDiv.textContent = `¡Felicidades, ganaste ${points} pts!`;
+        document.body.appendChild(alertDiv);
+        setTimeout(() => alertDiv.remove(), 3000);
+      }
+
+      // Función para mostrar alerta lateral de feedback
+      function showFeedbackAlert(message) {
+        let feedbackAlertDiv = document.createElement('div');
+        feedbackAlertDiv.className = "feedback-alert";
+        feedbackAlertDiv.innerHTML = formatFeedbackText(message, 40);
+        document.body.appendChild(feedbackAlertDiv);
+        setTimeout(() => feedbackAlertDiv.remove(), 5000);
+      }
+
+      // Función para iniciar el juego (registro) desde UI (aplica para desktop y VR)
+      function startGame() {
+        const name = document.getElementById('name').value.trim();
+        const age = document.getElementById('age').value.trim();
+        if (!name || !age) {
+          alert("Por favor, ingresa todos los datos.");
+          return;
+        }
+        player = { name, age, date: new Date().toLocaleString() };
+        console.log("Registro del jugador:", player);
+        
+        // Reproducir música de fondo
+        bgMusic.currentTime = 0;
+        bgMusic.volume = 0.5;
+        bgMusic.play();
+        
+        // Reproducir audio de introducción
+        let introAudio = new Audio("audio/intro.mp3");
+        introAudio.currentTime = 0;
+        introAudio.play();
+        
+        registrationDiv.classList.add('hidden');
+        introDiv.classList.remove('hidden');
+        typeWriterEffect(introTextDiv, generalIntro, 40, function() {
+          document.getElementById('introBtn').classList.remove('hidden');
+        });
+      }
+
+      startBtn.addEventListener('click', startGame);
+      startBtnVR.addEventListener('click', startGame);
+
+      document.getElementById('introBtn').addEventListener('click', function() {
+        introDiv.classList.add('hidden');
+        startLevelNarrative(currentLevel);
+      });
+
+      // Función para mostrar la narrativa de inicio de nivel (imagen + texto + audio)
+      function startLevelNarrative(level) {
+        console.log(`Iniciando narrativa del Nivel ${level}.`);
+        gameDiv.classList.remove('hidden');
+        isShowingNarrative = true;
+        contentDiv.innerHTML = "";
+        feedbackDiv.innerHTML = "";
+        attemptsForCurrentQuestion = 0;
+        
+        let narrationAudio = new Audio(levelNarratives[level].audio);
+        narrationAudio.currentTime = 0;
+        narrationAudio.play();
+        
+        contentDiv.innerHTML = `<img src="${levelNarratives[level].image}" alt="Nivel ${level} Imagen" class="level-img"><p></p>`;
+        const p = contentDiv.querySelector("p");
+        typeWriterEffect(p, levelNarratives[level].text, 40, function() {
+          nextBtn.textContent = "Continuar";
+          nextBtn.classList.remove('hidden');
+          nextBtn.onclick = function() {
+            nextBtn.classList.add('hidden');
+            isShowingNarrative = false;
+            showQuestion();
+          };
+        });
+      }
+
+      // Función para mostrar cada pregunta
+      function showQuestion() {
+        attemptsForCurrentQuestion = 0;
+        if (currentQuestionIndex < questions.length) {
+          const q = questions[currentQuestionIndex];
+          if (q.level > currentLevel) {
+            contentDiv.innerHTML = `<h2>¡Felicidades! Has completado el Nivel ${currentLevel}. Sigamos adelante. 🚀</h2>`;
+            nextBtn.textContent = "Continuar al siguiente nivel";
+            nextBtn.classList.remove('hidden');
+            nextBtn.onclick = function() {
+              currentLevel = q.level;
+              nextBtn.classList.add('hidden');
+              startLevelNarrative(currentLevel);
+            };
+            return;
+          }
+          if (q.audio) {
+            let questionAudio = new Audio(q.audio);
+            questionAudio.currentTime = 0;
+            questionAudio.play();
+          }
+          contentDiv.innerHTML = `<img src="${q.image}" alt="Pregunta" class="question-img"><p></p>`;
+          const p = contentDiv.querySelector("p");
+          typeWriterEffect(p, q.question, 40, function() {
+            // Crear botones de respuesta
+            const btnYes = document.createElement("button");
+            btnYes.textContent = "Sí";
+            btnYes.onclick = () => checkAnswer("Sí");
+            const btnNo = document.createElement("button");
+            btnNo.textContent = "No";
+            btnNo.onclick = () => checkAnswer("No");
+            contentDiv.appendChild(btnYes);
+            contentDiv.appendChild(btnNo);
+          });
+        } else {
+          // Fin de todas las preguntas
+          gameDiv.classList.add('hidden');
+          downloadSection.innerHTML = `<img src="images/final_screen.webp" alt="Pantalla Final" class="final-img">
+          <h2>Misión cumplida</h2>
+          <p>Felicidades, Agente ${player.name}.</p>
+          <p class="final-score">Score Final: ${totalScore} pts</p>
+          <p>¡Gracias por jugar!</p>`;
+          downloadSection.classList.remove('hidden');
+          let finalAudio = new Audio("audio/final.mp3");
+          finalAudio.currentTime = 0;
+          finalAudio.play();
+          sendResultToBackend();
+        }
+      }
+
+      // Función para verificar la respuesta y actualizar la puntuación
+      function checkAnswer(answer) {
+        const q = questions[currentQuestionIndex];
+        if (answer === q.correct) {
+          correctSound.currentTime = 0;
+          correctSound.play();
+          let basePoints = currentLevel === 1 ? 5 : (currentLevel === 2 ? 10 : 15);
+          let pointsAwarded = attemptsForCurrentQuestion > 0 ? Math.round(basePoints * 0.7) : basePoints;
+          totalScore += pointsAwarded;
+          showScoreAlert(pointsAwarded);
+          showFeedbackAlert(`✅ ${q.feedback}`);
+          nextBtn.textContent = "Siguiente";
+          nextBtn.classList.remove('hidden');
+          nextBtn.onclick = function() {
+            currentQuestionIndex++;
+            nextBtn.classList.add('hidden');
+            showQuestion();
+          };
+        } else {
+          wrongSound.currentTime = 0;
+          wrongSound.play();
+          attemptsForCurrentQuestion++;
+          showFeedbackAlert(`❌ Respuesta incorrecta. Intenta de nuevo.`);
+        }
+      }
+
+      // Función para enviar resultados al backend en formato JSON
+      function sendResultToBackend() {
+        const data = {
+          nombre: player.name,
+          edad: player.age,
+          fecha: player.date,
+          scoreFinal: totalScore
+        };
+        fetch('/guardar_resultado', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        })
+        .then(response => response.text())
+        .then(data => console.log("Resultado guardado: ", data))
+        .catch(error => console.error("Error al guardar el resultado: ", error));
+      }
+
+      // Evento global para reproducir sonido de click en botones
+      document.addEventListener('click', function(event) {
+        if (event.target.tagName.toLowerCase() === 'button') {
+          clickSound.currentTime = 0;
+          clickSound.play();
+        }
+      });
     });
   </script>
 </body>
