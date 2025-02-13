@@ -9,38 +9,39 @@
       font-family: 'RetroGaming';
       src: url('fonts/retro_gaming.ttf') format('truetype');
     }
-    .custom-text {
-      font-family: 'RetroGaming';
-    }
   </style>
 </head>
 <body>
   <a-scene>
-    <!-- Cámara con cursor para interacción -->
-    <a-entity camera position="0 1.6 0">
-      <a-cursor color="black"></a-cursor>
+    <!-- Cámara con cursor y raycaster para interacción -->
+    <a-entity id="cameraRig" position="0 1.6 0">
+      <a-entity camera look-controls>
+        <a-entity cursor="rayOrigin: mouse" position="0 0 -1" geometry="primitive: ring; radiusInner: 0.02; radiusOuter: 0.03" material="color: white; shader: flat"></a-entity>
+      </a-entity>
     </a-entity>
 
-    <!-- Controles de Meta Quest -->
+    <!-- Controles de Meta Quest con láser -->
     <a-entity oculus-touch-controls="hand: left"></a-entity>
     <a-entity oculus-touch-controls="hand: right"></a-entity>
+    <a-entity laser-controls="hand: left" raycaster="objects: .clickable; showLine: true; lineColor: red;"></a-entity>
+    <a-entity laser-controls="hand: right" raycaster="objects: .clickable; showLine: true; lineColor: blue;"></a-entity>
     
     <!-- Fondo ambiental -->
-    <a-sky color="#001a33"></a-sky>
+    <a-sky src="images/fondobonito.png" rotation="0 -130 0"></a-sky>
 
     <!-- Música de fondo -->
     <audio id="bgMusic" src="audio/bgMusic.mp3" autoplay loop></audio>
     
     <!-- Menú Principal -->
     <a-entity id="menu" position="0 1.5 -2">
-      <a-text class="custom-text" value="Brigada Protectora: Misión Especial" align="center" width="2.5" position="0 0.5 0" color="white"></a-text>
+      <a-text font="https://cdn.aframe.io/fonts/mozillavr.fnt" value="Brigada Protectora: Misión Especial" align="center" width="2.5" position="0 0.5 0" color="white"></a-text>
       
       <!-- Nombre -->
-      <a-text class="custom-text" value="Nombre:" align="center" width="1.5" position="-0.5 0.2 0" color="white"></a-text>
+      <a-text font="https://cdn.aframe.io/fonts/mozillavr.fnt" value="Nombre:" align="center" width="1.5" position="-0.5 0.2 0" color="white"></a-text>
       <a-entity geometry="primitive: plane; height: 0.15; width: 1" material="color: gray" position="0 0.05 0"></a-entity>
       
       <!-- Edad -->
-      <a-text class="custom-text" value="Edad:" align="center" width="1.5" position="-0.5 -0.2 0" color="white"></a-text>
+      <a-text font="https://cdn.aframe.io/fonts/mozillavr.fnt" value="Edad:" align="center" width="1.5" position="-0.5 -0.2 0" color="white"></a-text>
       <a-entity geometry="primitive: plane; height: 0.15; width: 1" material="color: gray" position="0 -0.35 0"></a-entity>
       
       <!-- Botón de inicio -->
@@ -57,4 +58,5 @@
   </script>
 </body>
 </html>
+
 
