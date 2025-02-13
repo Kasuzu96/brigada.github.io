@@ -2,454 +2,500 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Brigada Protectora VR</title>
-  <!-- Se utiliza la versión 1.6.0 de A-Frame -->
+  <title>Brigada Protectora VR - Menú 3D Fijo</title>
   <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
   <style>
-    /* Definición de fuente personalizada */
+    /* Fuente personalizada opcional */
     @font-face {
       font-family: 'RetroGaming';
       src: url('fonts/retro_gaming.ttf') format('truetype');
     }
-    /* Estilos para ocultar elementos */
-    .hidden {
-      display: none;
-    }
-    /* Contenedor de UI (superpuesto a la escena VR) */
-    #ui-container {
-      position: absolute;
-      top: 0;
-      left: 0;
+    body, html {
+      margin: 0;
+      padding: 0;
       width: 100%;
-      z-index: 999;
-      pointer-events: none;
-    }
-    .ui-panel {
-      pointer-events: auto;
-      background: rgba(0, 0, 0, 0.7);
-      color: white;
-      padding: 20px;
-      margin: 10px auto;
-      max-width: 400px;
-      border-radius: 10px;
+      height: 100%;
       font-family: 'RetroGaming', sans-serif;
+      overflow: hidden;
     }
-    /* Botones en la interfaz */
-    .ui-panel button, .ui-panel input {
-      font-family: 'RetroGaming', sans-serif;
-      font-size: 1em;
-      margin: 5px;
-      padding: 5px 10px;
-    }
-    /* Alertas laterales para score y feedback */
+    /* Estilos para feedback en pantalla (opcional) */
     .score-alert, .feedback-alert {
       position: fixed;
       right: 20px;
       padding: 10px;
       border-radius: 5px;
-      z-index: 1000;
+      z-index: 999;
+      color: #fff;
       font-family: 'RetroGaming', sans-serif;
     }
     .score-alert {
       top: 20px;
       background: green;
-      color: white;
     }
     .feedback-alert {
       bottom: 20px;
       background: rgba(0,0,0,0.7);
-      color: white;
     }
   </style>
 </head>
 <body>
-  <!-- UI superpuesto (fuera de la escena VR) -->
-  <div id="ui-container">
-    <!-- Registro de participante -->
-    <div id="registration" class="ui-panel">
-      <h2>Registro de Participante</h2>
-      <input id="name" type="text" placeholder="Nombre" />
-      <input id="age" type="number" placeholder="Edad" />
-      <button id="startBtn">Iniciar Misión</button>
-    </div>
-    <!-- Introducción general -->
-    <div id="intro" class="ui-panel hidden">
-      <div id="introText"></div>
-      <button id="introBtn" class="hidden">Comenzar Misión</button>
-    </div>
-    <!-- Panel de juego (preguntas y narrativas por nivel) -->
-    <div id="game" class="ui-panel hidden">
-      <div id="content"></div>
-      <button id="nextBtn" class="hidden">Siguiente</button>
-      <div id="feedback"></div>
-    </div>
-    <!-- Pantalla final -->
-    <div id="downloadSection" class="ui-panel hidden"></div>
-  </div>
-  
-  <!-- Escena A-Frame -->
-  <a-scene>
-    <!-- Pre-carga de activos -->
-    <a-assets>
-      <img id="skyImage" src="images/fondobonito.png">
-      <audio id="bgMusicAsset" src="audio/bgMusic.mp3"></audio>
-      <a-asset-item id="fontMozillavr" src="https://cdn.aframe.io/fonts/mozillavr.fnt"></a-asset-item>
-      <!-- Se pueden agregar más activos: audios de narración, imágenes de preguntas, etc. -->
-    </a-assets>
-    
-    <!-- Cámara con cursor basado en mouse para interacción en escritorio -->
-    <a-entity id="cameraRig" position="0 1.6 0">
-      <a-entity camera look-controls>
-        <a-entity cursor="rayOrigin: mouse"
-                  position="0 0 -1"
-                  geometry="primitive: ring; radiusInner: 0.02; radiusOuter: 0.03"
-                  material="color: white; shader: flat"></a-entity>
-      </a-entity>
+
+<a-scene renderer="antialias: true" 
+         background="color: #000" 
+         embedded
+         vr-mode-ui="enabled: true"
+         cursor="rayOrigin: mouse">
+
+  <!-- Activos (imágenes, audios, etc.) -->
+  <a-assets>
+    <img id="skyImage" src="images/fondobonito.png">
+    <audio id="bgMusicAsset" src="audio/bgMusic.mp3"></audio>
+    <!-- Audios de ejemplo para narraciones, correctSound, wrongSound, etc. -->
+    <audio id="correctSoundAsset" src="audio/correctSound.mp3"></audio>
+    <audio id="wrongSoundAsset" src="audio/wrongSound.mp3"></audio>
+    <audio id="clickSoundAsset" src="audio/clickSound.mp3"></audio>
+    <audio id="introAsset" src="audio/intro.mp3"></audio>
+    <!-- Podrías añadir más audios para cada nivel en assets -->
+  </a-assets>
+
+  <!-- Fondo -->
+  <a-sky src="#skyImage" rotation="0 -130 0"></a-sky>
+
+  <!-- Cámara y controles -->
+  <a-entity id="cameraRig" position="0 1.6 0">
+    <a-entity camera look-controls></a-entity>
+  </a-entity>
+  <!-- Controladores con láser para VR -->
+  <a-entity laser-controls="hand: left" 
+            raycaster="objects: .clickable; showLine: true;" 
+            line="color: red">
+  </a-entity>
+  <a-entity laser-controls="hand: right" 
+            raycaster="objects: .clickable; showLine: true;" 
+            line="color: blue">
+  </a-entity>
+
+  <!-- MENÚ 3D FIJO, que gestiona todo el flujo (registro, intro, preguntas y final) -->
+  <a-entity id="menu3d" position="0 1.6 -2">
+    <!-- FONDO general para todo el menú -->
+    <a-plane id="menuBg" width="2.5" height="2.8" color="#333" opacity="0.8"
+             position="0 0 0"
+             material="shader: flat">
+    </a-plane>
+
+    <!-- 1) REGISTRO DE PARTICIPANTE -->
+    <a-entity id="registration3d" visible="true">
+      <a-text value="Registro de Participante" color="#FFF" width="2.3"
+              position="-1.1 1.0 0.01" align="left"></a-text>
+
+      <!-- Campo Nombre (simulado) -->
+      <a-text value="Nombre:" color="#FFF" width="2"
+              position="-1.1 0.6 0.01" align="left"></a-text>
+      <a-plane id="nameField" class="clickable" width="1" height="0.2" color="#555"
+               position="0.0 0.6 0.01">
+        <a-text id="nameFieldText" value="(Haz clic)" color="#CCC" width="1.5"
+                position="-0.45 0 0.01" align="left"></a-text>
+      </a-plane>
+
+      <!-- Campo Edad (simulado) -->
+      <a-text value="Edad:" color="#FFF" width="2"
+              position="-1.1 0.2 0.01" align="left"></a-text>
+      <a-plane id="ageField" class="clickable" width="0.6" height="0.2" color="#555"
+               position="-0.2 0.2 0.01">
+        <a-text id="ageFieldText" value="(Clic)" color="#CCC" width="1.5"
+                position="-0.28 0 0.01" align="left"></a-text>
+      </a-plane>
+
+      <!-- Botón "Iniciar Misión" -->
+      <a-plane id="startBtn3d" class="clickable" width="1.2" height="0.3" color="#007BFF"
+               position="0 -0.3 0.01"
+               material="shader: flat">
+        <a-text value="Iniciar Misión" align="center" color="#FFF" width="1.8"
+                position="-0.6 0 0.01">
+        </a-text>
+      </a-plane>
     </a-entity>
-    
-    <!-- Controles para VR (Meta Quest u Oculus Touch) -->
-    <a-entity oculus-touch-controls="hand: left"></a-entity>
-    <a-entity oculus-touch-controls="hand: right"></a-entity>
-    <a-entity laser-controls="hand: left" raycaster="objects: .clickable; showLine: true; lineColor: red;"></a-entity>
-    <a-entity laser-controls="hand: right" raycaster="objects: .clickable; showLine: true; lineColor: blue;"></a-entity>
-    
-    <!-- Fondo ambiental -->
-    <a-sky src="#skyImage" rotation="0 -130 0"></a-sky>
-    
-    <!-- (Opcional) Menú dentro de la escena para VR, inicialmente oculto -->
-    <a-entity id="menu" position="0 1.5 -2" visible="false">
-      <a-text font="#fontMozillavr" value="Brigada Protectora: Misión Especial" align="center" width="2.5" position="0 0.5 0" color="white"></a-text>
-      <a-text font="#fontMozillavr" value="Nombre:" align="center" width="1.5" position="-0.5 0.2 0" color="white"></a-text>
-      <a-entity geometry="primitive: plane; height: 0.15; width: 1" material="color: gray" position="0 0.05 0"></a-entity>
-      <a-text font="#fontMozillavr" value="Edad:" align="center" width="1.5" position="-0.5 -0.2 0" color="white"></a-text>
-      <a-entity geometry="primitive: plane; height: 0.15; width: 1" material="color: gray" position="0 -0.35 0"></a-entity>
-      <a-entity id="startBtnVR" class="clickable" geometry="primitive: plane; height: 0.2; width: 1.2" material="color: blue" position="0 -0.7 0"
-                text="value: Iniciar Misión; align: center; color: white; width: 1.5"></a-entity>
+
+    <!-- 2) INTRO -->
+    <a-entity id="intro3d" visible="false">
+      <!-- Título / Texto -->
+      <a-text id="introText3d" value="" color="#FFF" width="2.2"
+              position="-1.1 0.8 0.01" align="left">
+      </a-text>
+      <!-- Botón "Comenzar Misión" -->
+      <a-plane id="introBtn3d" class="clickable" width="1.2" height="0.3" color="#007BFF"
+               position="0 -0.6 0.01"
+               material="shader: flat" visible="false">
+        <a-text value="Comenzar Misión" align="center" color="#FFF" width="1.8"
+                position="-0.9 0 0.01">
+        </a-text>
+      </a-plane>
     </a-entity>
-  </a-scene>
-  
-  <script>
-    /***************************************
-     * Lógica de la experiencia VR/2D modular
-     ***************************************/
-    document.addEventListener('DOMContentLoaded', function() {
-      console.log("DOM cargado correctamente.");
 
-      // Referencias a elementos de la UI
-      const registrationDiv = document.getElementById('registration');
-      const introDiv = document.getElementById('intro');
-      const gameDiv = document.getElementById('game');
-      const downloadSection = document.getElementById('downloadSection');
+    <!-- 3) JUEGO / PREGUNTAS -->
+    <a-entity id="game3d" visible="false">
+      <!-- Imagen de la pregunta -->
+      <a-plane id="questionImg" width="1.5" height="0.9" color="#444"
+               position="0 0.4 0.01" visible="false"
+               material="shader: flat; src: #skyImage">
+      </a-plane>
+      <!-- Texto de la pregunta -->
+      <a-text id="questionText" value="" color="#FFF" width="2.2"
+              position="-1.1 -0.2 0.01" align="left">
+      </a-text>
+      <!-- Botones Sí / No -->
+      <a-plane id="btnYes" class="clickable" width="0.5" height="0.2" color="#008000"
+               position="-0.4 -0.9 0.01"
+               material="shader: flat">
+        <a-text value="Sí" align="center" color="#FFF" width="1"
+                position="-0.15 0 0.01">
+        </a-text>
+      </a-plane>
+      <a-plane id="btnNo" class="clickable" width="0.5" height="0.2" color="#CC0000"
+               position="0.4 -0.9 0.01"
+               material="shader: flat">
+        <a-text value="No" align="center" color="#FFF" width="1"
+                position="-0.15 0 0.01">
+        </a-text>
+      </a-plane>
+      <!-- Botón Siguiente -->
+      <a-plane id="nextBtn3d" class="clickable" width="1.0" height="0.3" color="#007BFF"
+               position="0 -0.4 0.01"
+               material="shader: flat" visible="false">
+        <a-text id="nextBtn3dText" value="Siguiente" align="center" color="#FFF" width="1.5"
+                position="-0.7 0 0.01">
+        </a-text>
+      </a-plane>
+    </a-entity>
 
-      const startBtn = document.getElementById('startBtn');
-      const startBtnVR = document.getElementById('startBtnVR');
-      const introBtn = document.getElementById('introBtn');
-      const nextBtn = document.getElementById('nextBtn');
+    <!-- 4) PANTALLA FINAL -->
+    <a-entity id="final3d" visible="false">
+      <a-text id="finalTitle" value="Misión cumplida" color="#FFF" width="2.2"
+              position="-1.1 0.8 0.01" align="left">
+      </a-text>
+      <a-text id="finalMsg" value="" color="#FFF" width="2.2"
+              position="-1.1 0.3 0.01" align="left">
+      </a-text>
+      <!-- Imagen final (opcional) -->
+      <a-plane id="finalImg" width="1.5" height="0.9" color="#444"
+               position="0 -0.3 0.01" visible="true"
+               material="shader: flat; src: #skyImage">
+      </a-plane>
+    </a-entity>
 
-      const contentDiv = document.getElementById('content');
-      const feedbackDiv = document.getElementById('feedback');
-      const introTextDiv = document.getElementById('introText');
+  </a-entity>
+</a-scene>
 
-      // Cargar audios (se utilizan los assets pre-cargados cuando es posible)
-      const bgMusicAsset = document.getElementById('bgMusicAsset');
-      const bgMusic = new Audio(bgMusicAsset.getAttribute('src'));
-      const correctSound = new Audio("audio/correctSound.mp3");
-      const wrongSound = new Audio("audio/wrongSound.mp3");
-      const clickSound = new Audio("audio/clickSound.mp3");
+<script>
+/***************************************
+ * Lógica de la experiencia en 3D
+ ***************************************/
+document.addEventListener('DOMContentLoaded', () => {
+  // Referencias a entidades 3D
+  const registration3d = document.getElementById('registration3d');
+  const intro3d = document.getElementById('intro3d');
+  const game3d = document.getElementById('game3d');
+  const final3d = document.getElementById('final3d');
 
-      // Datos del jugador y estado del juego
-      let player = {};
-      let currentQuestionIndex = 0;
-      let currentLevel = 1;
-      let isShowingNarrative = false;
-      let totalScore = 0;
-      let attemptsForCurrentQuestion = 0;
+  // Campos y botones del registro
+  const nameField = document.getElementById('nameField');
+  const ageField = document.getElementById('ageField');
+  const nameFieldText = document.getElementById('nameFieldText');
+  const ageFieldText = document.getElementById('ageFieldText');
+  const startBtn3d = document.getElementById('startBtn3d');
 
-      // Narrativa general y por niveles
-      const generalIntro = `
-¡Hola, valiente explorador/a! 🌟 Hoy has sido elegido/a para una misión muy especial: convertirte en un agente de la Brigada Protectora. Nuestra tarea es reconocer situaciones de violencia y proteger a todos los niños y niñas del mundo.
-Para completar la misión, debes responder correctamente cada pregunta. Si lo logras, ¡te unirás a la Brigada Protectora y serás un verdadero héroe o heroína! 🦸‍♂️🦸‍♀️
-¡Ponte tu lupa 🔍, prepárate y que comience la aventura! 🚀`;
+  // Intro
+  const introText3d = document.getElementById('introText3d');
+  const introBtn3d = document.getElementById('introBtn3d');
 
-      const levelNarratives = {
-        1: {
-          text: `🔹 Nivel 1: ¿Qué son las violencias basadas en género?
+  // Juego / Preguntas
+  const questionImg = document.getElementById('questionImg');
+  const questionText = document.getElementById('questionText');
+  const btnYes = document.getElementById('btnYes');
+  const btnNo = document.getElementById('btnNo');
+  const nextBtn3d = document.getElementById('nextBtn3d');
+  const nextBtn3dText = document.getElementById('nextBtn3dText');
+
+  // Final
+  const finalTitle = document.getElementById('finalTitle');
+  const finalMsg = document.getElementById('finalMsg');
+
+  // Audios
+  const bgMusic = document.getElementById('bgMusicAsset');
+  const correctSound = document.getElementById('correctSoundAsset');
+  const wrongSound = document.getElementById('wrongSoundAsset');
+  const clickSound = document.getElementById('clickSoundAsset');
+  const introAudio = document.getElementById('introAsset');
+  // Podrías cargar más audios para cada pregunta/nivel si quieres
+
+  // Estado del juego y datos del jugador
+  let player = { name: "", age: "", date: "" };
+  let currentQuestionIndex = 0;
+  let currentLevel = 1;
+  let totalScore = 0;
+  let attemptsForCurrentQuestion = 0;
+
+  // Narrativa general de introducción
+  const generalIntro = `¡Hola, valiente explorador/a! 
+Hoy has sido elegido/a para una misión muy especial: convertirte en un agente de la Brigada Protectora.
+Nuestra tarea es reconocer situaciones de violencia y proteger a todos los niños y niñas del mundo.
+¡Ponte tu lupa, prepárate y que comience la aventura!`;
+
+  // Narrativas por nivel
+  const levelNarratives = {
+    1: {
+      text: `Nivel 1: ¿Qué son las violencias basadas en género?
 Antes de empezar...
-Las violencias basadas en género ocurren cuando alguien trata mal a otra persona solo por ser niño o niña. Esto puede hacer que alguien se sienta triste o piense que no puede hacer ciertas cosas. Todos tenemos los mismos derechos.`,
-          audio: "audio/level1_narration.mp3",
-          image: "images/level1_intro.webp"
-        },
-        2: {
-          text: `🔹 Nivel 2: ¿Cómo saber si algo no está bien?
-Antes de empezar...
-A veces, algo nos hace sentir mal, pero no sabemos si es correcto. Algunas señales son:
-– Que te toquen de forma no deseada.
-– Que te obliguen a hacer algo que no quieres.
-– Que se usen palabras hirientes.
-– Que te traten diferente por tu apariencia.`,
-          audio: "audio/level2_narration.mp3",
-          image: "images/level2_intro.webp"
-        },
-        3: {
-          text: `🔹 Nivel 3: ¿Qué hacer si esto te sucede a ti o a alguien que conoces?
-Antes de empezar...
-Si sientes que alguien te trata mal o ves que alguien más lo sufre, recuerda:
-– Hablar con una persona de confianza.
-– Saber que no es tu culpa.
-– Animar a pedir ayuda.`,
-          audio: "audio/level3_narration.mp3",
-          image: "images/level3_intro.webp"
-        }
+Las violencias basadas en género ocurren cuando alguien trata mal a otra persona solo por ser niño o niña. 
+Esto puede hacer que alguien se sienta triste.`,
+      audio: "audio/level1_narration.mp3",
+      image: "images/level1_intro.webp"
+    },
+    2: {
+      text: `Nivel 2: ¿Cómo saber si algo no está bien?
+A veces, algo nos hace sentir mal, pero no sabemos si es correcto. 
+Algunas señales son: tocamientos no deseados, obligaciones forzadas, palabras hirientes o trato desigual.`,
+      audio: "audio/level2_narration.mp3",
+      image: "images/level2_intro.webp"
+    },
+    3: {
+      text: `Nivel 3: ¿Qué hacer si esto te sucede a ti o a alguien que conoces?
+Si notas que alguien sufre maltrato, recuerda: 
+habla con una persona de confianza, no es tu culpa y siempre hay ayuda disponible.`,
+      audio: "audio/level3_narration.mp3",
+      image: "images/level3_intro.webp"
+    }
+  };
+
+  // Preguntas
+  const questions = [
+    { level: 1, question: `Situación 1:
+Mariana quiere jugar fútbol, pero unos niños le dicen que el fútbol es "solo para niños". 
+¿Hay violencia? (Sí / No)`, correct: "Sí", feedback: `Decirle a alguien que no puede hacer algo por su género es discriminatorio.`, image: "images/nivel1_situacion1.webp" },
+    { level: 1, question: `Situación 2:
+Pedro quiere aprender a bailar, pero sus amigos se burlan y dicen que "bailar es cosa de niñas". 
+¿Hay violencia? (Sí / No)`, correct: "Sí", feedback: `Burlarse de los gustos de alguien es violencia.`, image: "images/nivel1_situacion2.webp" },
+    { level: 1, question: `Situación 3:
+En la escuela se organizan equipos de ciencias y todos pueden participar. 
+¿Hay violencia? (Sí / No)`, correct: "No", feedback: `¡Correcto!`, image: "images/nivel1_situacion3.webp" },
+    { level: 2, question: `Situación 1:
+A Juan le dicen "cuatro ojos" por usar gafas. 
+¿Hay violencia? (Sí / No)`, correct: "Sí", feedback: `Burlarse por la apariencia es violencia.`, image: "images/nivel2_situacion1.webp" },
+    { level: 2, question: `Situación 2:
+Sara no quiere abrazar a un familiar, pero su mamá la obliga. 
+¿Hay violencia? (Sí / No)`, correct: "Sí", feedback: `Nadie debe obligarte a hacer algo que no deseas.`, image: "images/nivel2_situacion2.webp" },
+    { level: 2, question: `Situación 3:
+David es nuevo y todos lo incluyen en juegos. 
+¿Hay violencia? (Sí / No)`, correct: "No", feedback: `¡Correcto!`, image: "images/nivel2_situacion3.webp" },
+    { level: 3, question: `Situación 1:
+Lucía observa que su amiga está triste por ser molestada. 
+¿Debería ayudarla? (Sí / No)`, correct: "Sí", feedback: `¡Exacto!`, image: "images/nivel3_situacion1.webp" },
+    { level: 3, question: `Situación 2:
+Carlos escucha que a un niño se le advierte que "si cuenta algo, tendrá problemas". 
+¿Debería hablar con un adulto? (Sí / No)`, correct: "Sí", feedback: `¡Muy bien!`, image: "images/nivel3_situacion2.webp" },
+    { level: 3, question: `Situación 3:
+Emilia decide no contar un problema pensando que nadie le creerá. 
+¿Debería buscar ayuda? (Sí / No)`, correct: "Sí", feedback: `¡Correcto!`, image: "images/nivel3_situacion3.webp" }
+  ];
+
+  /*****************************************************
+   * Funciones de apoyo
+   *****************************************************/
+  function showEntity(entity, show = true) {
+    entity.setAttribute('visible', show);
+  }
+
+  function setText(aTextEl, text) {
+    aTextEl.setAttribute('value', text);
+  }
+
+  function playAudio(el) {
+    el.currentTime = 0;
+    el.play();
+  }
+
+  // Alertas en pantalla (HTML) para puntaje y feedback
+  function showScoreAlert(points) {
+    let alertDiv = document.createElement('div');
+    alertDiv.className = "score-alert";
+    alertDiv.textContent = `¡Ganaste ${points} pts!`;
+    document.body.appendChild(alertDiv);
+    setTimeout(() => alertDiv.remove(), 3000);
+  }
+  function showFeedbackAlert(message) {
+    let feedbackDiv = document.createElement('div');
+    feedbackDiv.className = "feedback-alert";
+    feedbackDiv.innerHTML = message;
+    document.body.appendChild(feedbackDiv);
+    setTimeout(() => feedbackDiv.remove(), 5000);
+  }
+
+  // Simulamos captura de Nombre y Edad en VR
+  nameField.addEventListener('click', () => {
+    playAudio(clickSound);
+    player.name = "AgenteX";
+    setText(nameFieldText, player.name);
+  });
+  ageField.addEventListener('click', () => {
+    playAudio(clickSound);
+    player.age = "10";
+    setText(ageFieldText, player.age);
+  });
+
+  // Botón Iniciar Misión (3D)
+  startBtn3d.addEventListener('click', () => {
+    playAudio(clickSound);
+    if (!player.name || !player.age) {
+      alert("Por favor, ingresa Nombre y Edad (simulado) antes de iniciar.");
+      return;
+    }
+    // Registramos la fecha
+    player.date = new Date().toLocaleString();
+    // Iniciamos música de fondo y audio de intro
+    playAudio(bgMusic);
+    playAudio(introAudio);
+    // Ocultar registro, mostrar intro
+    showEntity(registration3d, false);
+    showEntity(intro3d, true);
+    setText(introText3d, generalIntro);
+    // Al cabo de unos segundos, mostramos el botón "Comenzar Misión"
+    setTimeout(() => {
+      showEntity(introBtn3d, true);
+    }, 3000);
+  });
+
+  // Botón "Comenzar Misión" en intro
+  introBtn3d.addEventListener('click', () => {
+    playAudio(clickSound);
+    showEntity(intro3d, false);
+    startLevelNarrative(currentLevel);
+  });
+
+  // Manejo de la narrativa de inicio de nivel
+  function startLevelNarrative(level) {
+    console.log("Iniciando nivel:", level);
+    showEntity(game3d, false);
+    showEntity(intro3d, true);
+    showEntity(introBtn3d, false);
+    attemptsForCurrentQuestion = 0;
+
+    // Ponemos el texto de la narrativa
+    setText(introText3d, levelNarratives[level].text);
+    // Reproducir audio narración (opcional)
+    let narrationAudio = new Audio(levelNarratives[level].audio);
+    playAudio(narrationAudio);
+
+    // Mostrar botón "Continuar" tras un tiempo
+    setTimeout(() => {
+      showEntity(introBtn3d, true);
+      setText(introBtn3d.querySelector('a-text'), "Continuar");
+      // Al hacer clic en "Continuar" vamos a showQuestion
+      introBtn3d.onclick = () => {
+        playAudio(clickSound);
+        showEntity(intro3d, false);
+        showEntity(game3d, true);
+        showQuestion();
       };
+    }, 4000);
+  }
 
-      // Preguntas con sus datos (nivel, pregunta, respuesta correcta, feedback, imagen y audio)
-      const questions = [
-        { level: 1, question: `📌 Situación 1:
-Mariana quiere jugar fútbol en el recreo, pero unos niños le dicen que el fútbol es "solo para niños" y no la dejan jugar.
-¿Hay violencia? (Sí / No)`, correct: "Sí", feedback: `Decirle a alguien que no puede hacer algo por su género es discriminatorio.`, image: "images/nivel1_situacion1.webp", audio: "audio/nivel1_situacion1.mp3" },
-        { level: 1, question: `📌 Situación 2:
-Pedro quiere aprender a bailar, pero sus amigos le dicen que "bailar es cosa de niñas" y se burlan de él.
-¿Hay violencia? (Sí / No)`, correct: "Sí", feedback: `Burlarse de los gustos de alguien es violencia.`, image: "images/nivel1_situacion2.webp", audio: "audio/nivel1_situacion2.mp3" },
-        { level: 1, question: `📌 Situación 3:
-En la escuela se organizan equipos de ciencias y todos pueden participar.
-¿Hay violencia? (Sí / No)`, correct: "No", feedback: `¡Correcto! Es una situación justa para todos.`, image: "images/nivel1_situacion3.webp", audio: "audio/nivel1_situacion3.mp3" },
-        { level: 2, question: `📌 Situación 1:
-A Juan le dicen "cuatro ojos" en la escuela por usar gafas, lo que lo hace sentir mal.
-¿Hay violencia? (Sí / No)`, correct: "Sí", feedback: `Burlarse por la apariencia es violencia.`, image: "images/nivel2_situacion1.webp", audio: "audio/nivel2_situacion1.mp3" },
-        { level: 2, question: `📌 Situación 2:
-Sara no quiere abrazar a un familiar, pero su mamá la obliga.
-¿Hay violencia? (Sí / No)`, correct: "Sí", feedback: `Nadie debe obligarte a hacer algo que no deseas.`, image: "images/nivel2_situacion2.webp", audio: "audio/nivel2_situacion2.mp3" },
-        { level: 2, question: `📌 Situación 3:
-David es nuevo en la escuela y todos lo incluyen en sus juegos.
-¿Hay violencia? (Sí / No)`, correct: "No", feedback: `¡Correcto! La inclusión es fundamental.`, image: "images/nivel2_situacion3.webp", audio: "audio/nivel2_situacion3.mp3" },
-        { level: 3, question: `📌 Situación 1:
-Lucía observa que su amiga está triste por ser molestada.
-¿Debería ayudarla? (Sí / No)`, correct: "Sí", feedback: `¡Exacto! Ayudar es un acto de valentía.`, image: "images/nivel3_situacion1.webp", audio: "audio/nivel3_situacion1.mp3" },
-        { level: 3, question: `📌 Situación 2:
-Carlos escucha que a un niño se le advierte que "si cuenta algo, tendrá problemas".
-¿Debería hablar con un adulto? (Sí / No)`, correct: "Sí", feedback: `¡Muy bien! Un adulto puede ayudar.`, image: "images/nivel3_situacion2.webp", audio: "audio/nivel3_situacion2.mp3" },
-        { level: 3, question: `📌 Situación 3:
-Emilia decide no contar un problema pensando que nadie le creerá.
-¿Debería buscar ayuda? (Sí / No)`, correct: "Sí", feedback: `¡Correcto! Siempre hay alguien dispuesto a ayudar.`, image: "images/nivel3_situacion3.webp", audio: "audio/nivel3_situacion3.mp3" }
-      ];
-
-      // Función para efecto typewriter
-      function typeWriterEffect(element, text, speed = 30, callback) {
-        element.innerHTML = "";
-        let i = 0;
-        function type() {
-          if (i < text.length) {
-            element.innerHTML += text.charAt(i);
-            i++;
-            setTimeout(type, speed);
-          } else if (callback) {
-            callback();
-          }
-        }
-        type();
-      }
-
-      // Función para formatear feedback en varias líneas
-      function formatFeedbackText(text, maxLineLength = 40) {
-        let words = text.split(' ');
-        let formatted = '';
-        let line = '';
-        words.forEach(word => {
-          if (line.length + word.length + 1 > maxLineLength) {
-            formatted += line.trim() + '<br>';
-            line = word + ' ';
-          } else {
-            line += word + ' ';
-          }
-        });
-        formatted += line.trim();
-        return formatted;
-      }
-
-      // Función para mostrar alerta lateral de score
-      function showScoreAlert(points) {
-        let alertDiv = document.createElement('div');
-        alertDiv.className = "score-alert";
-        alertDiv.textContent = `¡Felicidades, ganaste ${points} pts!`;
-        document.body.appendChild(alertDiv);
-        setTimeout(() => alertDiv.remove(), 3000);
-      }
-
-      // Función para mostrar alerta lateral de feedback
-      function showFeedbackAlert(message) {
-        let feedbackAlertDiv = document.createElement('div');
-        feedbackAlertDiv.className = "feedback-alert";
-        feedbackAlertDiv.innerHTML = formatFeedbackText(message, 40);
-        document.body.appendChild(feedbackAlertDiv);
-        setTimeout(() => feedbackAlertDiv.remove(), 5000);
-      }
-
-      // Función para iniciar el juego (registro) desde UI (aplica para desktop y VR)
-      function startGame() {
-        const name = document.getElementById('name').value.trim();
-        const age = document.getElementById('age').value.trim();
-        if (!name || !age) {
-          alert("Por favor, ingresa todos los datos.");
-          return;
-        }
-        player = { name, age, date: new Date().toLocaleString() };
-        console.log("Registro del jugador:", player);
-        
-        // Reproducir música de fondo
-        bgMusic.currentTime = 0;
-        bgMusic.volume = 0.5;
-        bgMusic.play();
-        
-        // Reproducir audio de introducción
-        let introAudio = new Audio("audio/intro.mp3");
-        introAudio.currentTime = 0;
-        introAudio.play();
-        
-        registrationDiv.classList.add('hidden');
-        introDiv.classList.remove('hidden');
-        typeWriterEffect(introTextDiv, generalIntro, 40, function() {
-          document.getElementById('introBtn').classList.remove('hidden');
-        });
-      }
-
-      startBtn.addEventListener('click', startGame);
-      startBtnVR.addEventListener('click', startGame);
-
-      document.getElementById('introBtn').addEventListener('click', function() {
-        introDiv.classList.add('hidden');
+  // Mostramos pregunta actual
+  function showQuestion() {
+    if (currentQuestionIndex >= questions.length) {
+      // Ya no hay más preguntas: pantalla final
+      showEntity(game3d, false);
+      showEntity(final3d, true);
+      setText(finalMsg, `Felicidades, Agente ${player.name}.\nScore Final: ${totalScore} pts\n¡Gracias por jugar!`);
+      let finalAudio = new Audio("audio/final.mp3");
+      playAudio(finalAudio);
+      sendResultToBackend();
+      return;
+    }
+    let q = questions[currentQuestionIndex];
+    // Si el nivel de la pregunta > currentLevel, pasamos a narrativa
+    if (q.level > currentLevel) {
+      setText(questionText, `¡Felicidades! Completaste el nivel ${currentLevel}.\nPulsa "Siguiente" para continuar...`);
+      showEntity(nextBtn3d, true);
+      setText(nextBtn3dText, "Siguiente Nivel");
+      nextBtn3d.onclick = () => {
+        playAudio(clickSound);
+        currentLevel = q.level;
+        showEntity(nextBtn3d, false);
         startLevelNarrative(currentLevel);
-      });
+      };
+      return;
+    }
+    // Mostramos la pregunta
+    attemptsForCurrentQuestion = 0;
+    showEntity(nextBtn3d, false);
+    setText(nextBtn3dText, "Siguiente");
+    // Imagen
+    questionImg.setAttribute('src', q.image);
+    showEntity(questionImg, true);
+    // Texto
+    setText(questionText, q.question);
+  }
 
-      // Función para mostrar la narrativa de inicio de nivel (imagen + texto + audio)
-      function startLevelNarrative(level) {
-        console.log(`Iniciando narrativa del Nivel ${level}.`);
-        gameDiv.classList.remove('hidden');
-        isShowingNarrative = true;
-        contentDiv.innerHTML = "";
-        feedbackDiv.innerHTML = "";
-        attemptsForCurrentQuestion = 0;
-        
-        let narrationAudio = new Audio(levelNarratives[level].audio);
-        narrationAudio.currentTime = 0;
-        narrationAudio.play();
-        
-        contentDiv.innerHTML = `<img src="${levelNarratives[level].image}" alt="Nivel ${level} Imagen" class="level-img"><p></p>`;
-        const p = contentDiv.querySelector("p");
-        typeWriterEffect(p, levelNarratives[level].text, 40, function() {
-          nextBtn.textContent = "Continuar";
-          nextBtn.classList.remove('hidden');
-          nextBtn.onclick = function() {
-            nextBtn.classList.add('hidden');
-            isShowingNarrative = false;
-            showQuestion();
-          };
-        });
-      }
+  // Botones Sí / No
+  btnYes.addEventListener('click', () => checkAnswer("Sí"));
+  btnNo.addEventListener('click', () => checkAnswer("No"));
 
-      // Función para mostrar cada pregunta
-      function showQuestion() {
-        attemptsForCurrentQuestion = 0;
-        if (currentQuestionIndex < questions.length) {
-          const q = questions[currentQuestionIndex];
-          if (q.level > currentLevel) {
-            contentDiv.innerHTML = `<h2>¡Felicidades! Has completado el Nivel ${currentLevel}. Sigamos adelante. 🚀</h2>`;
-            nextBtn.textContent = "Continuar al siguiente nivel";
-            nextBtn.classList.remove('hidden');
-            nextBtn.onclick = function() {
-              currentLevel = q.level;
-              nextBtn.classList.add('hidden');
-              startLevelNarrative(currentLevel);
-            };
-            return;
-          }
-          if (q.audio) {
-            let questionAudio = new Audio(q.audio);
-            questionAudio.currentTime = 0;
-            questionAudio.play();
-          }
-          contentDiv.innerHTML = `<img src="${q.image}" alt="Pregunta" class="question-img"><p></p>`;
-          const p = contentDiv.querySelector("p");
-          typeWriterEffect(p, q.question, 40, function() {
-            // Crear botones de respuesta
-            const btnYes = document.createElement("button");
-            btnYes.textContent = "Sí";
-            btnYes.onclick = () => checkAnswer("Sí");
-            const btnNo = document.createElement("button");
-            btnNo.textContent = "No";
-            btnNo.onclick = () => checkAnswer("No");
-            contentDiv.appendChild(btnYes);
-            contentDiv.appendChild(btnNo);
-          });
-        } else {
-          // Fin de todas las preguntas
-          gameDiv.classList.add('hidden');
-          downloadSection.innerHTML = `<img src="images/final_screen.webp" alt="Pantalla Final" class="final-img">
-          <h2>Misión cumplida</h2>
-          <p>Felicidades, Agente ${player.name}.</p>
-          <p class="final-score">Score Final: ${totalScore} pts</p>
-          <p>¡Gracias por jugar!</p>`;
-          downloadSection.classList.remove('hidden');
-          let finalAudio = new Audio("audio/final.mp3");
-          finalAudio.currentTime = 0;
-          finalAudio.play();
-          sendResultToBackend();
-        }
-      }
+  function checkAnswer(answer) {
+    playAudio(clickSound);
+    let q = questions[currentQuestionIndex];
+    if (answer === q.correct) {
+      playAudio(correctSound);
+      let basePoints = (q.level === 1) ? 5 : (q.level === 2 ? 10 : 15);
+      let pointsAwarded = (attemptsForCurrentQuestion > 0) 
+                          ? Math.round(basePoints * 0.7) 
+                          : basePoints;
+      totalScore += pointsAwarded;
+      showScoreAlert(pointsAwarded);
+      showFeedbackAlert(`✅ ${q.feedback}`);
+      // Mostrar botón "Siguiente"
+      showEntity(nextBtn3d, true);
+      nextBtn3d.onclick = () => {
+        playAudio(clickSound);
+        currentQuestionIndex++;
+        showQuestion();
+      };
+    } else {
+      playAudio(wrongSound);
+      attemptsForCurrentQuestion++;
+      showFeedbackAlert("❌ Respuesta incorrecta. Intenta de nuevo.");
+    }
+  }
 
-      // Función para verificar la respuesta y actualizar la puntuación
-      function checkAnswer(answer) {
-        const q = questions[currentQuestionIndex];
-        if (answer === q.correct) {
-          correctSound.currentTime = 0;
-          correctSound.play();
-          let basePoints = currentLevel === 1 ? 5 : (currentLevel === 2 ? 10 : 15);
-          let pointsAwarded = attemptsForCurrentQuestion > 0 ? Math.round(basePoints * 0.7) : basePoints;
-          totalScore += pointsAwarded;
-          showScoreAlert(pointsAwarded);
-          showFeedbackAlert(`✅ ${q.feedback}`);
-          nextBtn.textContent = "Siguiente";
-          nextBtn.classList.remove('hidden');
-          nextBtn.onclick = function() {
-            currentQuestionIndex++;
-            nextBtn.classList.add('hidden');
-            showQuestion();
-          };
-        } else {
-          wrongSound.currentTime = 0;
-          wrongSound.play();
-          attemptsForCurrentQuestion++;
-          showFeedbackAlert(`❌ Respuesta incorrecta. Intenta de nuevo.`);
-        }
-      }
+  // Enviar resultados al backend
+  function sendResultToBackend() {
+    const data = {
+      nombre: player.name,
+      edad: player.age,
+      fecha: player.date,
+      scoreFinal: totalScore
+    };
+    fetch('/guardar_resultado', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    })
+    .then(r => r.text())
+    .then(d => console.log("Resultado guardado:", d))
+    .catch(e => console.error("Error:", e));
+  }
 
-      // Función para enviar resultados al backend en formato JSON
-      function sendResultToBackend() {
-        const data = {
-          nombre: player.name,
-          edad: player.age,
-          fecha: player.date,
-          scoreFinal: totalScore
-        };
-        fetch('/guardar_resultado', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(data)
-        })
-        .then(response => response.text())
-        .then(data => console.log("Resultado guardado: ", data))
-        .catch(error => console.error("Error al guardar el resultado: ", error));
-      }
-
-      // Evento global para reproducir sonido de click en botones
-      document.addEventListener('click', function(event) {
-        if (event.target.tagName.toLowerCase() === 'button') {
-          clickSound.currentTime = 0;
-          clickSound.play();
-        }
-      });
-    });
-  </script>
+  // Reproducir clickSound en cada clic de botón
+  document.addEventListener('click', (ev) => {
+    let tag = ev.target.tagName.toLowerCase();
+    if (tag === 'a-plane' || tag === 'a-entity' || tag === 'a-text') {
+      // Revisa si es clickable
+      // (a-plane con class="clickable" dispara el evento, pero para no duplicar
+      //  se hace un condicional más estricto si quieres)
+      // playAudio(clickSound); // ya lo hacemos en checkAnswer, etc.
+    }
+  });
+});
+</script>
 </body>
 </html>
-
 
